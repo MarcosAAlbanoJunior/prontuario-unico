@@ -116,7 +116,8 @@ Tudo gira em torno de `event`. Cada evento aponta para a `source` de onde veio, 
 | `source` | Origem bruta de qualquer registro | `id`, `kind` (telegram_text, telegram_command, reminder_reply, web, document), `raw_text`, `telegram_message_id`, `document_id`, `received_at` |
 | `document` | Arquivo original (PDF, foto de receita) | `id`, `filename`, `mime`, `size_bytes`, `sha256` (único), `storage_path`, `uploaded_at` |
 | `event` | Sintomas e hábitos na linha do tempo | `id`, `type`, `concept`, `body_region`, `value_num`, `value_text`, `unit`, `intensity` (0–10), `occurred_start`, `occurred_end`, `time_precision`, `recorded_at`, `status`, `source_id`, `source_locator`, `created_via`, `extraction_run_id`, `dedupe_key` (único) |
-| `lab_result` | Um analito de um exame | `id`, `document_id`, `collected_on`, `lab_name`, `analyte_code`, `analyte_name_raw`, `value_num`, `value_text`, `unit`, `ref_low`, `ref_high`, `ref_text`, `status`, `source_locator` (página) |
+| `exam` | Um exame (uma coleta de um laboratório) | `id`, `collected_on`, `lab_name`, `document_id` (opcional), `source_id`, `created_at` |
+| `lab_result` | Um analito de um exame | `id`, `exam_id`, `analyte_code`, `analyte_name_raw`, `value_num`, `value_text`, `unit`, `ref_low`, `ref_high`, `ref_text`, `status`, `source_locator` (página) |
 | `analyte` | Catálogo de analitos | `code`, `display_name`, `canonical_unit`, `body_region`, `aliases` (text[]) |
 | `appointment` | Consultas | `id`, `occurred_on`, `specialty`, `professional_name`, `notes`, `source_id` |
 | `guidance` | Orientação médica registrada | `id`, `appointment_id`, `text`, `follow_up_on`, `analyte_code` ou `concept`, `done_at` |
@@ -126,6 +127,8 @@ Tudo gira em torno de `event`. Cada evento aponta para a `source` de onde veio, 
 
 **Regras do modelo**
 
+- Todo `id` é UUID v7 (ordenado pelo tempo), gerado no domínio e com `DEFAULT uuidv7()` no banco como reserva. Exceção: `analyte`, cuja chave é o `code`.
+- Um `exam` agrupa os analitos de uma mesma coleta. O PDF é opcional no cadastro e pode ser anexado depois.
 - `event.type`: symptom, sleep, water, exercise, weight, meal, medication, note. Consultas e exames têm tabelas próprias, mas aparecem na mesma linha do tempo por uma view.
 - `status`: proposed → confirmed ou discarded. Só `confirmed` entra em contagens, metas e no mapa do corpo.
 - Datas em `timestamptz`, exibidas no fuso `APP_TIMEZONE` (padrão `America/Sao_Paulo`). `time_precision` vale exact, day, month ou approx; "ontem à noite" vira `approx`, resolvido a partir de `recorded_at`.
