@@ -4,3 +4,6 @@ APP_BASE_URL: "http://localhost:8080"
 TELEGRAM_BOT_TOKEN: "test-token"
 TELEGRAM_ALLOWED_CHAT_ID: "1"
 DATA_DIR: "target/test-data"
+
+telegram:
+  polling: false
