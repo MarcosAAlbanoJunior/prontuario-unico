@@ -22,6 +22,13 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -f backend -Pnative -DskipTest
 
 # Stage 3: minimal runtime, non-root, only the binary.
 FROM gcr.io/distroless/base-debian13:nonroot@sha256:a0d70d6a97cd697d9362bc2aae4a6560dd65817e365d0043b07325a97975dc91
+ARG VERSION=dev
+# Links the published image to this public repository, wherever it is built.
+LABEL org.opencontainers.image.title="prontuario-unico" \
+      org.opencontainers.image.description="Self-hosted personal health record" \
+      org.opencontainers.image.source="https://github.com/MarcosAAlbanoJunior/prontuario-unico" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="${VERSION}"
 COPY --from=backend /workspace/backend/target/prontuario-unico /app/prontuario-unico
 COPY --from=backend --chown=65532:65532 /workspace/data /data
 USER nonroot

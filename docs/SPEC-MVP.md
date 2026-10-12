@@ -101,7 +101,8 @@ prontuario-unico/
 ├── frontend/               React + Vite + TypeScript
 ├── deploy/                 docker-compose.yml, .env.example, backup.sh, Caddyfile
 ├── docs/                   install, architecture, adr/
-└── .github/workflows/      ci.yml, release.yml
+├── scripts/verify.sh       todas as verificações de uma mudança (backend e frontend)
+└── .github/dependabot.yml  atualizações de dependências (sem workflows)
 ```
 
 - Pacotes só se acessam pela camada de serviço pública de cada um; repositórios ficam internos ao pacote.
@@ -260,10 +261,12 @@ O frontend é uma SPA em React que segue o design já feito no canvas: o corpo n
 
 Desenvolva na JVM e compile o nativo só no CI. O build nativo leva minutos e usa vários GB de RAM; por isso a VPS nunca compila nada e só baixa a imagem pronta do GHCR.
 
+O CI/CD fica num repositório privado do mantenedor, não neste (ver `docs/adr/0003-ci-cd-outside-public-repo.md`). Este repositório traz o que o CI precisa e o que permite auditar a imagem: o `Dockerfile`, o `scripts/verify.sh` e as tags `v*`, cada uma correspondente a uma imagem publicada. Quem preferir pode montar a imagem a partir do código com `docker compose build`.
+
 **Fluxo de build**
 
 1. No dia a dia: `./mvnw spring-boot:run` na JVM, com o Vite em `npm run dev` fazendo proxy para `/api`.
-2. No CI, a cada PR: testes na JVM com Testcontainers, depois `./mvnw -Pnative native:test` para rodar os testes no binário nativo.
+2. Antes de cada commit ou PR: `scripts/verify.sh` (testes na JVM com Testcontainers, lint, testes e build do frontend). O CI privado roda o mesmo script e depois `./mvnw -Pnative native:test` para rodar os testes no binário nativo.
 3. Numa tag `v*`: Dockerfile multi-stage. Estágio 1, Node LTS (24, depois 26), compila o frontend. Estágio 2, a imagem `native-image` do GraalVM para JDK 25, roda `native:compile`. Estágio 3, runtime `distroless/base` como usuário não root, só com o binário.
 4. Imagens para `amd64` e `arm64`, em runners nativos de cada arquitetura (sem emulação), publicadas no GHCR com um manifesto único.
 
@@ -329,7 +332,7 @@ São cinco marcos, cada um utilizável por si só. A M2 já ajuda no dia a dia, 
 
 - [ ] Repositório com Apache-2.0, README inicial, `CONTRIBUTING.md` e `SECURITY.md`
 - [ ] Projeto Spring Boot e Vite criados, Flyway com o schema da seção Modelo de dados
-- [ ] CI rodando testes na JVM e `native:test`
+- [ ] `scripts/verify.sh` rodando os testes na JVM e as verificações do frontend; CI e `native:test` no repositório privado
 - [ ] `docker compose up` sobe app e banco, e `/actuator/health` responde
 
 **M1 · Telegram + comandos (8–12 h)**

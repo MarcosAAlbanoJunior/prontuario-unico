@@ -25,7 +25,13 @@ npm --prefix frontend run dev               # frontend dev server, proxies /api 
 npm --prefix frontend run lint && npm --prefix frontend test
 ```
 
-The native build is slow and memory hungry; CI runs it on every pull request, so you rarely need it locally.
+Before opening a pull request, run every check with:
+
+```bash
+scripts/verify.sh
+```
+
+This repository has no GitHub Actions: the maintainers run the same script, the native image tests and the image build in a separate CI. The native build is slow and memory hungry, so you rarely need it locally.
 
 ## Architecture
 

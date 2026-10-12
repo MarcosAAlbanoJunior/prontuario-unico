@@ -30,6 +30,19 @@ The user interface is in Brazilian Portuguese (pt-BR); code and documentation ar
 
 Java 25 · Spring Boot 4.1 · GraalVM native image · PostgreSQL 18 · Spring Data JDBC · Flyway · React 19 · Vite 8 · TypeScript.
 
+## Container image
+
+Release images are published to `ghcr.io/marcosaalbanojunior/prontuario-unico` by the maintainer's CI, built from the `v*` tag of the same version in this repository. CI runs outside this repository; see [ADR 0003](docs/adr/0003-ci-cd-outside-public-repo.md).
+
+If you would rather not run a prebuilt image, build it from source. The native build takes several minutes and needs about 8 GB of RAM:
+
+```bash
+git checkout v0.1.0            # the release you want
+cd deploy && cp .env.example .env   # then fill in .env
+docker compose build
+docker compose up -d
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](SECURITY.md).

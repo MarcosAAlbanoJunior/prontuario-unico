@@ -20,13 +20,15 @@ Java 25 (LTS) · Spring Boot 4.1.x · GraalVM CE 25 native image · Maven 3.10 �
 ```bash
 ./mvnw -f backend verify                    # unit + integration tests (JVM)
 ./mvnw -f backend spring-boot:run           # run on the JVM (daily dev)
-./mvnw -f backend -Pnative native:test      # tests on the native binary (slow; CI runs it)
+./mvnw -f backend -Pnative native:test      # tests on the native binary (slow; the private CI runs it)
+scripts/verify.sh                           # every check a change must pass (backend + frontend)
 npm --prefix frontend run dev               # Vite dev server, proxies /api to :8080
 npm --prefix frontend run lint && npm --prefix frontend test
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
 Do not run the native build locally unless asked: it takes minutes and several GB of RAM.
+CI/CD lives in the maintainer's private repository, not here: do not add GitHub Actions workflows. Run `scripts/verify.sh` before committing.
 
 ## Backend architecture: hexagonal, package by feature
 
