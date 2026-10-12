@@ -1,0 +1,61 @@
+# Production stack: the app (native image) and PostgreSQL.
+# Usage: cp .env.example .env, fill it in, then `docker compose up -d`.
+# Local LLM (optional): `docker compose --profile local-llm up -d`.
+name: prontuario-unico
+
+services:
+  app:
+    image: ghcr.io/marcosaalbanojunior/prontuario-unico:${APP_VERSION:-latest}
+    build:
+      context: ..
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-prontuario}
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - appdata:/data
+    tmpfs:
+      - /tmp
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:18.6-alpine3.24
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=10", "-c", "work_mem=4MB"]
+    environment:
+      POSTGRES_DB: ${DB_NAME:-prontuario}
+      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:0.40.3
+    profiles: ["local-llm"]
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  appdata:
+  ollama:

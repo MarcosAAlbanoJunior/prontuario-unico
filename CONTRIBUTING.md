@@ -12,11 +12,15 @@ Thanks for your interest. This is a small personal project, so please open an is
 
 ## Development
 
-Requirements: JDK 25, Node.js 24 LTS and Docker (for Testcontainers).
+Requirements: JDK 25, Node.js 24 LTS (`nvm use` reads `.nvmrc`) and Docker (for Testcontainers and the dev database).
 
 ```bash
-./mvnw -f backend verify                    # backend unit + integration tests
+docker compose -f deploy/compose.dev.yml up -d   # PostgreSQL on 127.0.0.1:5432
+export DB_URL=jdbc:postgresql://127.0.0.1:5432/prontuario DB_USER=prontuario DB_PASSWORD=prontuario \
+       APP_BASE_URL=http://localhost:8080 DATA_DIR="$PWD/data" \
+       APP_PASSWORD_HASH='<bcrypt hash>' TELEGRAM_BOT_TOKEN='<token>' TELEGRAM_ALLOWED_CHAT_ID='<chat id>'
 ./mvnw -f backend spring-boot:run           # run the backend on the JVM
+./mvnw -f backend verify                    # backend unit + integration tests
 npm --prefix frontend run dev               # frontend dev server, proxies /api to :8080
 npm --prefix frontend run lint && npm --prefix frontend test
 ```
