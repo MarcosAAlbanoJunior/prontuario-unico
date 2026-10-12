@@ -141,7 +141,7 @@ Tudo gira em torno de `event`. Cada evento aponta para a `source` de onde veio, 
 
 ## Integração Telegram
 
-O bot usa long polling: o app chama `getUpdates` e o Telegram nunca precisa alcançar a sua VPS, então nenhuma porta fica exposta. Só o `TELEGRAM_ALLOWED_CHAT_ID` configurado é atendido; qualquer outra mensagem é ignorada e registrada em log sem conteúdo.
+O bot usa long polling: o app chama `getUpdates` e o Telegram nunca precisa alcançar a sua VPS, então nenhuma porta fica exposta. Só o `TELEGRAM_ALLOWED_CHAT_ID` configurado é atendido; qualquer outra mensagem é ignorada, sem resposta, e registrada em log só com o chat ID. É assim que você descobre o seu: mande `/start` ao bot e leia o log.
 
 **Funcionamento do polling**
 
@@ -157,9 +157,13 @@ O bot usa long polling: o app chama `getUpdates` e o Telegram nunca precisa alca
 | `/sono` | `/sono 6h40` ou `/sono 23:30 06:10` | sleep com duração, ou início e fim |
 | `/treino` | `/treino musculação 50` | exercise, 50 min |
 | `/peso` | `/peso 82.4` | weight, kg |
-| `/dor` | `/dor joelho direito 4` | symptom, região right_knee, intensidade 4 |
+| `/dor` | `/dor joelho direito 4` | symptom, região right_knee, intensidade 4 (opcional) |
 | `/hoje` | `/hoje` | Resposta: metas do dia e da semana |
 | `/desfazer` | `/desfazer` | Descarta o último registro |
+
+Comando sem o dado essencial não grava nada: o bot pergunta o que falta ("Quantos mL de água?", "Onde é a dor?") e a resposta seguinte completa o registro. A pergunta fica pendente em memória por 10 minutos.
+
+Metas iniciais, criadas na primeira execução e editáveis no painel: água 2.000 mL por dia, sono 7 h por dia e treino 150 min por semana. São só pontos de partida para o `/hoje`, não recomendação de saúde.
 
 **Texto livre (com LLM)**
 
@@ -299,7 +303,7 @@ O CI/CD fica num repositório privado do mantenedor, não neste (ver `docs/adr/0
 | `APP_BASE_URL` | Sim | `https://saude.seudominio.com`, usado nos links do bot |
 | `DB_URL` · `DB_USER` · `DB_PASSWORD` | Sim | Postgres do compose |
 | `TELEGRAM_BOT_TOKEN` | Sim | Token do BotFather |
-| `TELEGRAM_ALLOWED_CHAT_ID` | Sim | Seu chat ID (o bot informa no `/start`) |
+| `TELEGRAM_ALLOWED_CHAT_ID` | Sim | Seu chat ID (mande `/start` ao bot e veja o log do app) |
 | `LLM_ENABLED` · `LLM_BASE_URL` · `LLM_MODEL` · `LLM_API_KEY` | Não | `true` · `http://ollama:11434/v1` · `qwen3:8b` · vazio |
 | `DATA_DIR` | Não | `/data` |
 

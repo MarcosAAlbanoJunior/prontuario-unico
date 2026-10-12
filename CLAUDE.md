@@ -62,6 +62,7 @@ Dependency rules (enforced by ArchUnit tests in `backend/src/test/.../architectu
 ## Code conventions
 
 - SOLID and small units: a class has one reason to change; methods short enough to read without scrolling; extract when a name explains intent better than a comment.
+- Hard limit: no source file in `src/main/java` over 200 lines (enforced by `SourceFileSizeTest`). When a class grows, split it by responsibility or sub-context instead of compressing code.
 - Names over comments. Comments explain *why*, never *what*.
 - Immutability by default: `record` for value objects, commands, queries and DTOs; `final` fields; no setters in the domain.
 - Domain invariants are checked in constructors/factory methods and throw domain exceptions. Bean Validation only at the web edge.
