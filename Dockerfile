@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: build the frontend.
-FROM node:24.21.0-alpine3.24 AS frontend
+FROM node:26.11.1-alpine3.24 AS frontend
 WORKDIR /workspace/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
