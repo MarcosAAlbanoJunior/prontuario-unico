@@ -1,0 +1,25 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Backend
+target/
+!.mvn/wrapper/maven-wrapper.jar
+backend/src/main/resources/static/
+
+# Frontend
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local data
+/data/
+
+# IDE and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+*.log
