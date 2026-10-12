@@ -38,6 +38,7 @@ class HealthEndpointTest {
             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.headers().firstValue("X-Request-Id")).isPresent();
             assertThat(response.body())
                     .contains("\"status\":\"UP\"")
                     .doesNotContain("components", "details");

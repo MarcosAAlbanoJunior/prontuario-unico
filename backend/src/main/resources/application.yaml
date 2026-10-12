@@ -18,6 +18,11 @@ server:
   address: ${SERVER_ADDRESS:127.0.0.1}
   port: 8080
 
+logging:
+  pattern:
+    # Plain-text logs in development carry the trace id; production uses structured ECS JSON.
+    level: "%5p [%X{traceId:-}]"
+
 management:
   endpoints:
     web:
