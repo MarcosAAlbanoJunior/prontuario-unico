@@ -2,153 +2,129 @@ package io.github.marcosaalbanojunior.prontuario.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.GeneralCodingRules.NO_CLASSES_SHOULD_USE_FIELD_INJECTION;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
-import com.tngtech.archunit.lang.ArchCondition;
-import com.tngtech.archunit.lang.ConditionEvents;
-import com.tngtech.archunit.lang.SimpleConditionEvent;
-import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 
-// Guards the dependency rules described in CLAUDE.md. Rules allow empty matches
-// because most modules have no classes yet.
 @DisabledInNativeImage
+@DisplayName("Architecture rules (AGENTS.md section 4)")
 class ArchitectureTest {
 
     private static final String ROOT = "io.github.marcosaalbanojunior.prontuario";
-    private static final String COMMON = "common";
 
     private static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(ROOT);
 
-    @Test
-    void domainShouldDependOnlyOnTheJdk() {
-        classes().that().resideInAPackage("..domain..")
-                .should().onlyDependOnClassesThat().resideInAnyPackage("java..", "..domain..")
-                .allowEmptyShould(true)
-                .check(CLASSES);
+    @Nested
+    @DisplayName("dependencies between layers")
+    class Layers {
+
+        @Test
+        @DisplayName("domain <- application <- adapter <- config, never the other way")
+        void should_respectLayerDirection_when_classesDependOnEachOther() {
+            layeredArchitecture().consideringOnlyDependenciesInLayers()
+                    .layer("Domain").definedBy(ROOT + ".domain..")
+                    .layer("Application").definedBy(ROOT + ".application..")
+                    .layer("Adapter").definedBy(ROOT + ".adapter..")
+                    .layer("Config").definedBy(ROOT + ".config..")
+                    .whereLayer("Config").mayNotBeAccessedByAnyLayer()
+                    .whereLayer("Adapter").mayOnlyBeAccessedByLayers("Config")
+                    .whereLayer("Application").mayOnlyBeAccessedByLayers("Adapter", "Config")
+                    .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Adapter", "Config")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("domain depends only on the JDK and itself")
+        void should_dependOnlyOnJdk_when_inDomain() {
+            classes().that().resideInAPackage(ROOT + ".domain..")
+                    .should().onlyDependOnClassesThat().resideInAnyPackage("java..", ROOT + ".domain..")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("domain models do not depend on domain services")
+        void should_notUseServices_when_inDomainModel() {
+            noClasses().that().resideInAPackage(ROOT + ".domain.model..")
+                    .should().dependOnClassesThat().resideInAPackage(ROOT + ".domain.service..")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("application is free of Spring, Jakarta and Jackson")
+        void should_beFrameworkFree_when_inApplication() {
+            noClasses().that().resideInAPackage(ROOT + ".application..")
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "org.springframework..", "jakarta..", "tools.jackson..", "com.fasterxml..")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("adapters never call other adapters")
+        void should_beIndependent_when_inDifferentAdapters() {
+            slices().matching(ROOT + ".adapter.(*).(*)..").should().notDependOnEachOther().check(CLASSES);
+        }
+    }
+
+    @Nested
+    @DisplayName("naming (AGENTS.md section 4.3)")
+    class Naming {
+
+        @Test
+        @DisplayName("inbound ports are *UseCase interfaces")
+        void should_endWithUseCase_when_inboundPortInterface() {
+            classes().that().resideInAPackage(ROOT + ".application.port.in..").and().areInterfaces().and(notSealed())
+                    .should().haveSimpleNameEndingWith("UseCase")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("outbound ports are *Port interfaces")
+        void should_endWithPort_when_outboundPortInterface() {
+            classes().that().resideInAPackage(ROOT + ".application.port.out..").and().areInterfaces()
+                    .should().haveSimpleNameEndingWith("Port")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("use case implementations are *Service classes in application.usecase")
+        void should_endWithService_when_implementingUseCase() {
+            classes().that().implement(nameEndingWith("UseCase"))
+                    .should().haveSimpleNameEndingWith("Service").andShould().resideInAPackage(ROOT + ".application.usecase..")
+                    .check(CLASSES);
+        }
+
+        @Test
+        @DisplayName("port implementations are *Adapter classes in adapter")
+        void should_endWithAdapter_when_implementingPort() {
+            classes().that().implement(nameEndingWith("Port"))
+                    .should().haveSimpleNameEndingWith("Adapter").andShould().resideInAPackage(ROOT + ".adapter..")
+                    .check(CLASSES);
+        }
     }
 
     @Test
-    void applicationShouldNotDependOnFrameworksAdaptersOrWiring() {
-        noClasses().that().resideInAPackage("..application..")
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "org.springframework..", "jakarta..", "tools.jackson..", "com.fasterxml..",
-                        "..adapter..", "..config..")
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void inboundAdaptersShouldNotCallOutboundAdapters() {
-        noClasses().that().resideInAPackage("..adapter.in..")
-                .should().dependOnClassesThat().resideInAPackage("..adapter.out..")
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void outboundAdaptersShouldNotCallInboundAdapters() {
-        noClasses().that().resideInAPackage("..adapter.out..")
-                .should().dependOnClassesThat().resideInAPackage("..adapter.in..")
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void onlyWiringShouldDependOnAdapters() {
-        noClasses().that().resideOutsideOfPackages("..adapter..", "..config..")
-                .should().dependOnClassesThat().resideInAPackage("..adapter..")
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void persistenceRowsShouldNotLeaveTheirAdapter() {
-        noClasses().that().resideOutsideOfPackage("..adapter.out.persistence..")
-                .should().dependOnClassesThat().haveSimpleNameEndingWith("Row")
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void modulesShouldTalkOnlyThroughInboundPorts() {
-        classes().should(useOtherModulesOnlyThroughInboundPorts())
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void commonShouldNotDependOnFeatureModules() {
-        classes().that().resideInAPackage(ROOT + "." + COMMON + "..")
-                .should(notDependOnFeatureModules())
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void modulesShouldBeFreeOfCycles() {
-        slices().matching(ROOT + ".(*)..")
-                .should().beFreeOfCycles()
-                .allowEmptyShould(true)
-                .check(CLASSES);
-    }
-
-    @Test
-    void shouldUseConstructorInjection() {
+    @DisplayName("uses constructor injection only")
+    void should_notUseFieldInjection_when_wiringBeans() {
         NO_CLASSES_SHOULD_USE_FIELD_INJECTION.check(CLASSES);
     }
 
-    private static ArchCondition<JavaClass> useOtherModulesOnlyThroughInboundPorts() {
-        return new ArchCondition<>("use other modules only through their application.port.in") {
-            @Override
-            public void check(JavaClass origin, ConditionEvents events) {
-                var originModule = moduleOf(origin);
-                origin.getDirectDependenciesFromSelf().forEach(dependency -> {
-                    var target = dependency.getTargetClass();
-                    var targetModule = moduleOf(target);
-                    var crossesModules = targetModule.isPresent()
-                            && !targetModule.equals(originModule)
-                            && !targetModule.get().equals(COMMON);
-                    if (crossesModules && !isInboundPort(target, targetModule.get())) {
-                        events.add(SimpleConditionEvent.violated(dependency, dependency.getDescription()));
-                    }
-                });
-            }
-        };
+    private static DescribedPredicate<JavaClass> notSealed() {
+        return DescribedPredicate.describe("are not sealed result types", javaClass -> !javaClass.reflect().isSealed());
     }
 
-    private static ArchCondition<JavaClass> notDependOnFeatureModules() {
-        return new ArchCondition<>("not depend on feature modules") {
-            @Override
-            public void check(JavaClass origin, ConditionEvents events) {
-                origin.getDirectDependenciesFromSelf().forEach(dependency -> {
-                    var targetModule = moduleOf(dependency.getTargetClass());
-                    if (targetModule.isPresent() && !targetModule.get().equals(COMMON)) {
-                        events.add(SimpleConditionEvent.violated(dependency, dependency.getDescription()));
-                    }
-                });
-            }
-        };
-    }
-
-    private static boolean isInboundPort(JavaClass target, String module) {
-        var inboundPorts = ROOT + "." + module + ".application.port.in";
-        return target.getPackageName().equals(inboundPorts) || target.getPackageName().startsWith(inboundPorts + ".");
-    }
-
-    private static Optional<String> moduleOf(JavaClass javaClass) {
-        var packageName = javaClass.getPackageName();
-        if (!packageName.startsWith(ROOT + ".")) {
-            return Optional.empty();
-        }
-        return Optional.of(packageName.substring(ROOT.length() + 1).split("\\.")[0]);
+    private static DescribedPredicate<JavaClass> nameEndingWith(String suffix) {
+        return DescribedPredicate.describe("a type named *" + suffix, javaClass -> javaClass.getSimpleName().endsWith(suffix));
     }
 }

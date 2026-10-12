@@ -3,6 +3,7 @@ package io.github.marcosaalbanojunior.prontuario;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.marcosaalbanojunior.prontuario.support.TestcontainersConfiguration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(TestcontainersConfiguration.class)
+@DisplayName("Flyway migrations (database constraints)")
 class SchemaMigrationTest {
 
     private static final OffsetDateTime NOW = OffsetDateTime.of(2026, 10, 12, 8, 0, 0, 0, ZoneOffset.UTC);
@@ -40,14 +43,16 @@ class SchemaMigrationTest {
     }
 
     @Test
-    void shouldGenerateUuidV7IdsByDefault() {
+    @DisplayName("generates UUID v7 ids by default")
+    void should_generateUuidV7_when_idIsOmitted() {
         var id = insertSource();
 
         assertThat(id.version()).isEqualTo(7);
     }
 
     @Test
-    void shouldAcceptValidEventAsProposed() {
+    @DisplayName("accepts a valid event as proposed")
+    void should_acceptAsProposed_when_eventIsValid() {
         var id = insert("event", validEvent(insertSource()));
 
         var status = jdbc.sql("SELECT status FROM event WHERE id = ?").param(id).query(String.class).single();
@@ -56,7 +61,8 @@ class SchemaMigrationTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidEvents")
-    void shouldRejectInvalidEvent(String description, Map<String, Object> overrides) {
+    @DisplayName("rejects an invalid event")
+    void should_reject_when_eventIsInvalid(String description, Map<String, Object> overrides) {
         var event = validEvent(insertSource());
         event.putAll(overrides);
 
@@ -76,7 +82,8 @@ class SchemaMigrationTest {
     }
 
     @Test
-    void shouldRejectDuplicateDedupeKey() {
+    @DisplayName("rejects a duplicate dedupe key")
+    void should_reject_when_dedupeKeyRepeats() {
         var sourceId = insertSource();
         insert("event", validEvent(sourceId));
 
@@ -84,7 +91,8 @@ class SchemaMigrationTest {
     }
 
     @Test
-    void shouldRejectSameDocumentTwice() {
+    @DisplayName("rejects the same document twice")
+    void should_reject_when_documentRepeats() {
         insert("document", validDocument());
 
         assertThatThrownBy(() -> insert("document", validDocument())).isInstanceOf(DuplicateKeyException.class);
@@ -92,7 +100,8 @@ class SchemaMigrationTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidDocuments")
-    void shouldRejectInvalidDocument(String description, Map<String, Object> overrides) {
+    @DisplayName("rejects an invalid document")
+    void should_reject_when_documentIsInvalid(String description, Map<String, Object> overrides) {
         var document = validDocument();
         document.putAll(overrides);
 
@@ -109,7 +118,8 @@ class SchemaMigrationTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidLabResults")
-    void shouldRejectInvalidLabResult(String description, Map<String, Object> overrides) {
+    @DisplayName("rejects an invalid lab result")
+    void should_reject_when_labResultIsInvalid(String description, Map<String, Object> overrides) {
         var result = validLabResult(insertExam());
         result.putAll(overrides);
 
@@ -126,7 +136,8 @@ class SchemaMigrationTest {
     }
 
     @Test
-    void shouldRejectGuidanceLinkedToBothAnalyteAndConcept() {
+    @DisplayName("rejects guidance linked to both an analyte and a concept")
+    void should_reject_when_guidanceHasAnalyteAndConcept() {
         jdbc.sql("INSERT INTO analyte (code, display_name) VALUES ('alt', 'TGP')").update();
         var guidance = new HashMap<String, Object>(Map.of(
                 "appointment_id", insertAppointment(),
@@ -138,7 +149,8 @@ class SchemaMigrationTest {
     }
 
     @Test
-    void shouldRejectGoalWithoutPositiveTarget() {
+    @DisplayName("rejects a goal without a positive target")
+    void should_reject_when_goalTargetIsNotPositive() {
         var goal = Map.<String, Object>of("type", "water", "target_value", 0, "unit", "ml", "period", "day");
 
         assertThatThrownBy(() -> insert("goal", goal)).isInstanceOf(DataIntegrityViolationException.class);
