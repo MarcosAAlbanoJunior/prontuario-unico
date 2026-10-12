@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: prontuario-unico
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# Required settings default to empty so validation fails with a clear message
+# (an unresolved placeholder would be bound as literal text).
+app:
+  password-hash: ${APP_PASSWORD_HASH:}
+  base-url: ${APP_BASE_URL:}
+  timezone: ${APP_TIMEZONE:America/Sao_Paulo}
+  data-dir: ${DATA_DIR:/data}
+
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  allowed-chat-id: ${TELEGRAM_ALLOWED_CHAT_ID:}
