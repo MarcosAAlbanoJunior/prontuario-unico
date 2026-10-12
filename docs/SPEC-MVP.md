@@ -130,6 +130,7 @@ Tudo gira em torno de `event`. Cada evento aponta para a `source` de onde veio, 
 - Todo `id` é UUID v7 (ordenado pelo tempo), gerado no domínio e com `DEFAULT uuidv7()` no banco como reserva. Exceção: `analyte`, cuja chave é o `code`.
 - Um `exam` agrupa os analitos de uma mesma coleta. O PDF é opcional no cadastro e pode ser anexado depois.
 - `event.type`: symptom, sleep, water, exercise, weight, meal, medication, note. Consultas e exames têm tabelas próprias, mas aparecem na mesma linha do tempo por uma view.
+- `event.created_via`: command (comandos rápidos), free_text (texto livre, com ou sem LLM; `extraction_run_id` diz se houve LLM), reminder_reply ou web.
 - `status`: proposed → confirmed ou discarded. Só `confirmed` entra em contagens, metas e no mapa do corpo.
 - Datas em `timestamptz`, exibidas no fuso `APP_TIMEZONE` (padrão `America/Sao_Paulo`). `time_precision` vale exact, day, month ou approx; "ontem à noite" vira `approx`, resolvido a partir de `recorded_at`.
 - `body_region` é um enum fechado (head, neck, chest, abdomen, upper_back, lower_back, left_arm, right_arm, left_knee, right_knee, left_leg, right_leg, systemic). Cada região tem uma posição fixa no desenho do corpo.
