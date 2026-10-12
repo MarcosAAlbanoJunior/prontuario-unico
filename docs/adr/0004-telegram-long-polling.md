@@ -11,7 +11,7 @@ The bot is the main way to record data, so it must be reliable and quick. Telegr
 - Use long polling with `getUpdates` (`timeout=50`) on one virtual thread, through a plain `RestClient`; no bot SDK (ADR 0001).
 - Handle one update at a time. The work for an update and the new offset are stored in the same database transaction; replies are sent only after the commit.
 - Persist the last handled `update_id` in `telegram_offset`, so a restart continues where it stopped.
-- Serve only `TELEGRAM_ALLOWED_CHAT_ID`; other chats get no answer and are logged by chat id only.
+- Serve only `TELEGRAM_ALLOWED_CHAT_ID`. Other chats are ignored, except that `/start` from any chat is answered with that chat's own id, so the owner can find theirs. Chat ids are personal data and are never logged.
 - On network errors wait with exponential backoff (1 s to 60 s), and honour `retry_after` on HTTP 429.
 - An update whose handling fails is skipped (offset advanced) and the user is asked to try again, so one bad message cannot stop the bot.
 

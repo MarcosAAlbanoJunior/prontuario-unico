@@ -35,7 +35,7 @@ This repository has no GitHub Actions: the maintainers run the same script, the 
 
 ## Architecture
 
-The backend is a modular monolith with a hexagonal layout per feature module. The dependency rules are enforced by ArchUnit tests. See [CLAUDE.md](CLAUDE.md) for the package layout, conventions and testing strategy.
+The backend is hexagonal, organized by layer (`domain`, `application`, `adapter`, `config`) with context subfolders. The dependency rules are enforced by ArchUnit tests and coverage must stay at 100%. See [AGENTS.md](AGENTS.md) for the package layout, conventions, logging rules and testing strategy.
 
 ## Pull requests
 

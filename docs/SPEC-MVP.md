@@ -82,7 +82,7 @@ Navegador ── HTTPS via proxy ou VPN ─────────────�
                                                               └─────────────────────────────────┘
 ```
 
-O pacote `entries` recebe tudo o que chega (comandos, texto livre e respostas a lembretes) e decide se precisa chamar o `llm`. O `dashboard` lê e grava no mesmo banco.
+O backend segue arquitetura hexagonal organizada por camada (`domain`, `application`, `adapter`, `config`), com subpastas por contexto (`entry`, `goal`, `telegram`, ...) quando uma camada cresce; as regras estão no `AGENTS.md`. O caso de uso de registro recebe tudo o que chega (comandos, texto livre e respostas a lembretes) e decide se precisa chamar o LLM. O painel lê e grava no mesmo banco.
 
 **Estrutura do repositório (monorepo, nomes em inglês)**
 
@@ -90,14 +90,10 @@ O pacote `entries` recebe tudo o que chega (comandos, texto livre e respostas a 
 prontuario-unico/
 ├── backend/                Spring Boot, Maven
 │   └── src/main/java/io/github/<user>/prontuario/
-│       ├── telegram/       polling, commands, reply cards
-│       ├── entries/        events, proposals, dedupe
-│       ├── exams/          exams, analytes, documents
-│       ├── appointments/   appointments, guidance
-│       ├── goals/          goals, reminders
-│       ├── llm/            OpenAI-compatible client
-│       ├── dashboard/      REST API, read models
-│       └── common/         config, security, time, i18n
+│       ├── domain/         model/ e service/: regras puras, sem framework
+│       ├── application/    port/in (casos de uso), port/out (portas), usecase/
+│       ├── adapter/        in/ (Telegram, web) e out/ (persistência, clientes HTTP)
+│       └── config/         wiring do Spring, propriedades, hints do native
 ├── frontend/               React + Vite + TypeScript
 ├── deploy/                 docker-compose.yml, .env.example, backup.sh, Caddyfile
 ├── docs/                   install, architecture, adr/
@@ -105,7 +101,7 @@ prontuario-unico/
 └── .github/dependabot.yml  atualizações de dependências (sem workflows)
 ```
 
-- Pacotes só se acessam pela camada de serviço pública de cada um; repositórios ficam internos ao pacote.
+- `domain` não depende de framework; `application` só conhece `domain` e as próprias portas; adapters implementam as portas. As regras são verificadas por testes de arquitetura (ArchUnit).
 - As decisões grandes viram ADRs curtos, em inglês, em `docs/adr/`: native image, sem Hibernate, long polling, LLM opcional. Cada uma rende um post.
 
 ## Modelo de dados
@@ -141,7 +137,7 @@ Tudo gira em torno de `event`. Cada evento aponta para a `source` de onde veio, 
 
 ## Integração Telegram
 
-O bot usa long polling: o app chama `getUpdates` e o Telegram nunca precisa alcançar a sua VPS, então nenhuma porta fica exposta. Só o `TELEGRAM_ALLOWED_CHAT_ID` configurado é atendido; qualquer outra mensagem é ignorada, sem resposta, e registrada em log só com o chat ID. É assim que você descobre o seu: mande `/start` ao bot e leia o log.
+O bot usa long polling: o app chama `getUpdates` e o Telegram nunca precisa alcançar a sua VPS, então nenhuma porta fica exposta. Só o `TELEGRAM_ALLOWED_CHAT_ID` configurado é atendido; mensagens de outros chats são ignoradas. A única exceção é o `/start`: o bot responde a qualquer chat só com o próprio chat ID, para você descobrir o seu. Nenhum chat ID vai para o log (dado pessoal, LGPD).
 
 **Funcionamento do polling**
 
@@ -303,7 +299,7 @@ O CI/CD fica num repositório privado do mantenedor, não neste (ver `docs/adr/0
 | `APP_BASE_URL` | Sim | `https://saude.seudominio.com`, usado nos links do bot |
 | `DB_URL` · `DB_USER` · `DB_PASSWORD` | Sim | Postgres do compose |
 | `TELEGRAM_BOT_TOKEN` | Sim | Token do BotFather |
-| `TELEGRAM_ALLOWED_CHAT_ID` | Sim | Seu chat ID (mande `/start` ao bot e veja o log do app) |
+| `TELEGRAM_ALLOWED_CHAT_ID` | Sim | Seu chat ID (mande `/start` ao bot: ele responde com o ID) |
 | `LLM_ENABLED` · `LLM_BASE_URL` · `LLM_MODEL` · `LLM_API_KEY` | Não | `true` · `http://ollama:11434/v1` · `qwen3:8b` · vazio |
 | `DATA_DIR` | Não | `/data` |
 
