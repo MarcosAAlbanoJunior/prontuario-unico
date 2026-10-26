@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -f backend -Pnative -DskipTest
     && mkdir -p /workspace/data
 
 # Stage 3: minimal runtime, non-root, only the binary.
-FROM gcr.io/distroless/base-debian13:nonroot@sha256:a0d70d6a97cd697d9362bc2aae4a6560dd65817e365d0043b07325a97975dc91
+FROM gcr.io/distroless/base-debian13:nonroot@sha256:f9518b74815721f537a7458cc693b4406208c04fce23bbffab511516117f34fd
 ARG VERSION=dev
 # Links the published image to this public repository, wherever it is built.
 LABEL org.opencontainers.image.title="prontuario-unico" \
