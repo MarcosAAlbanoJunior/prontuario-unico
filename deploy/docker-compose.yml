@@ -49,7 +49,7 @@ services:
     restart: unless-stopped
 
   ollama:
-    image: ollama/ollama:0.40.3
+    image: ollama/ollama:0.40.10
     profiles: ["local-llm"]
     volumes:
       - ollama:/root/.ollama
